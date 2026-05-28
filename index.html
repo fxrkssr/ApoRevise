@@ -86,7 +86,8 @@
         .fish-card:active { transform: scale(0.96); }
         .fish-card.selected { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
 
-        .image-box { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; position: relative; }
+        /* แก้ไขคลาส image-box สำหรับมือถือแล้ว */
+        .image-box { width: 100%; padding-top: 100%; background-size: cover; background-position: center; position: relative; }
         .image-box::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
 
         .select-indicator {
@@ -290,10 +291,11 @@
             `).join('');
         }
 
+        /* แก้ไขลิงก์รูปภาพ Drive สำหรับมือถือแล้ว */
         function toImgUrl(url) {
             if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=āPO';
             var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
+            return m ? 'https://drive.google.com/uc?export=view&id=' + m[1] : url;
         }
 
         function showSummary() {

@@ -9,12 +9,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
+            --bg: #0d1626;
             --bg: oklch(12% 0.02 240);
+            --surface: #161e2e;
             --surface: oklch(16% 0.02 240);
+            --fg: #f8f9fb;
             --fg: oklch(98% 0.005 240);
+            --muted: #7a8499;
             --muted: oklch(60% 0.02 240);
+            --gold: #c9a84c;
             --gold: oklch(78% 0.10 85);
+            --gold-glow: rgba(201, 168, 76, 0.3);
             --gold-glow: oklch(78% 0.10 85 / 0.3);
+            --border: #252e40;
             --border: oklch(22% 0.02 240);
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
@@ -39,7 +46,7 @@
 
         .sticky-top {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(13, 22, 38, 0.85); backdrop-filter: blur(20px);
+            background: rgba(13, 22, 38, 0.85); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border); padding: 12px 0;
         }
         
@@ -128,9 +135,9 @@
 
         .modal {
             position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; padding: 20px;
+            display: none; align-items: center; justify-content: center; padding: 20px;
         }
-        .modal.visible { display: flex; }
+        .modal.visible { display: flex; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
         .modal-content {
             background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
             width: 100%; max-width: 400px; padding: 24px; position: relative;
@@ -293,9 +300,9 @@
 
         // ปรับปรุง URL รูปภาพ Google Drive ให้เป็น HTTPS ทั้งหมดเพื่อความปลอดภัยบนหน้าจอมือถือ
         function toImgUrl(url) {
-            if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=āPO';
+            if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=APO';
             var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            return m ? 'https://drive.google.com/uc?export=view&id=' + m[1] : url;
+            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
         }
 
         function showSummary() {
@@ -355,7 +362,11 @@
         async function loadData() {
             try {
                 // เพิ่มระบบดึงข้อมูลสำรองในกรณีที่ Fetch แบบธรรมดาติดขัด เพื่อความเสถียรสูงสุดบนมือถือ
-                const response = await fetch(API_URL);
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    credentials: 'omit',
+                    redirect: 'follow'
+                });
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
                 

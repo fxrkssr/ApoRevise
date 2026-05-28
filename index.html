@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>āPO — The Masterpiece Collection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060b13;
+            --surface: #0a101a;
+            --fg: oklch(98% 0.005 250);
+            --muted: oklch(60% 0.02 240);
+            --gold: oklch(78% 0.10 85);
+            --gold-glow: oklch(78% 0.10 85 / 0.3);
+            --border: #151f2e;
+            --font-th: 'Prompt', sans-serif;
+            --font-serif: 'Cormorant Garamond', serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background-color: var(--bg); color: var(--fg); font-family: var(--font-th); 
+            line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 16px; }
+
+        @keyframes reveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .reveal { animation: reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        header { padding: 40px 0 20px; text-align: center; }
+        .logo-wrap img { height: 300px; max-width: 100%; filter: brightness(1.2); transition: transform 0.3s; }
+        .logo-wrap:hover img { transform: scale(1.05); }
+        .tagline { font-size: 10px; letter-spacing: 0.5em; color: var(--gold); text-transform: uppercase; margin-top: 8px; font-weight: 300; }
+
+        .sticky-top {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(6, 11, 19, 0.85); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); padding: 12px 0;
+        }
+        
+        .tab-nav { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+        .tab-btn { 
+            font-size: 14px; color: var(--muted); cursor: pointer; padding-bottom: 4px;
+            transition: 0.3s; border-bottom: 1.5px solid transparent; font-weight: 400;
+        }
+        .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 500; }
+
+        .search-container { position: relative; }
+        .search-container input {
+            width: 100%; background: var(--surface); border: 1px solid var(--border);
+            color: var(--fg); padding: 12px 16px 12px 42px; font-size: 14px; border-radius: 12px;
+            font-family: var(--font-th); transition: 0.3s;
+        }
+        .search-container input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-glow); }
+        .search-container::before {
+            content: '🔍'; position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            font-size: 14px; opacity: 0.4;
+        }
+
+        .chips-wrapper { 
+            display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; 
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .chips-wrapper::-webkit-scrollbar { display: none; }
+        .chip {
+            white-space: nowrap; padding: 6px 16px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 20px; font-size: 12px;
+            color: var(--muted); cursor: pointer; transition: 0.2s;
+        }
+        .chip.active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+
+        .fish-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 20px 0 120px;
+        }
+
+        .fish-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            overflow: hidden; display: flex; flex-direction: column; position: relative;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer;
+        }
+        .fish-card:active { transform: scale(0.96); }
+        .fish-card.selected { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+
+        .image-box { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; position: relative; }
+        .image-box::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
+
+        .select-indicator {
+            position: absolute; top: 10px; right: 10px; width: 24px; height: 24px;
+            border-radius: 50%; border: 1.5px solid var(--gold); z-index: 10;
+            background: rgba(10, 15, 25, 0.6); display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .fish-card.selected .select-indicator { background: var(--gold); transform: scale(1.1); }
+        .fish-card.selected .select-indicator::after { content: '✓'; color: var(--bg); font-size: 14px; font-weight: bold; }
+
+        .card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; }
+        .fish-name { font-size: 14px; font-weight: 500; line-height: 1.3; margin-bottom: 10px; height: 2.6em; overflow: hidden; }
+        
+        .price-tag { margin-top: auto; border-top: 1px solid var(--border); padding-top: 10px; }
+        .total-price { font-size: 18px; color: var(--gold); font-weight: 600; font-family: 'Inter', sans-serif; }
+        .per-kg { font-size: 10px; color: var(--muted); display: block; margin-top: -2px; }
+
+        .source-tag { font-size: 10px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+        .source-tag::before { content: '📍'; font-size: 8px; }
+
+        .order-dock {
+            position: fixed; bottom: 24px; left: 16px; right: 16px;
+            background: var(--surface); border: 1px solid var(--gold);
+            border-radius: 16px; padding: 16px 20px; display: flex;
+            align-items: center; justify-content: space-between;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6); z-index: 2000;
+            transform: translateY(150px); transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .order-dock.active { transform: translateY(0); }
+        .sum-price { font-size: 20px; color: var(--gold); font-weight: 600; font-family: 'Inter', sans-serif; }
+        
+        .order-btn {
+            background: var(--gold); color: var(--bg); border: none; padding: 12px 28px;
+            border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 15px var(--gold-glow); transition: 0.2s;
+        }
+
+        .modal {
+            position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal.visible { display: flex; }
+        .modal-content {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+            width: 100%; max-width: 400px; padding: 24px; position: relative;
+        }
+
+        .loading-state { grid-column: 1/-1; padding: 100px 0; text-align: center; color: var(--gold); font-size: 16px; letter-spacing: 0.1em; }
+
+        @media (min-width: 600px) {
+            .fish-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+            .fish-name { font-size: 16px; }
+            .total-price { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="reveal">
+        <div class="logo-wrap"><img src="mppkllsa-logo-apo.png" alt="āPO" onerror="this.src='https://via.placeholder.com/150x50/060b13/ffffff?text=APO'"></div>
+        <div class="tagline">The Michelin Standard Fishery</div>
+    </header>
+
+    <div class="sticky-top reveal" style="animation-delay: 0.1s">
+        <div class="container">
+            <div class="tab-nav">
+                <div class="tab-btn active" id="tab-fish" onclick="switchTab('fish')">The Fish</div>
+                <div class="tab-btn" id="tab-shell" onclick="switchTab('shell')">Shell & Sea</div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="search" placeholder="ค้นหาตามชื่อปลา หรือ แหล่งที่มา..." oninput="handleSearch()">
+            </div>
+            <div class="chips-wrapper">
+                <div class="chip active" onclick="filterBy('all', this)">ทั้งหมด</div>
+                <div class="chip" onclick="filterBy('หลีเป๊ะ', this)">จากหลีเป๊ะ</div>
+                <div class="chip" onclick="filterBy('ภูเก็ต', this)">จากภูเก็ต</div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <div id="catalog" class="fish-grid">
+            <div id="loading-indicator" class="loading-state">
+                กำลังเตรียมวัตถุดิบประจำวัน...
+            </div>
+        </div>
+    </main>
+
+    <div class="order-dock" id="order-dock">
+        <div class="order-summary">
+            <div class="item-count" id="dock-count">เลือกแล้ว 0 รายการ</div>
+            <div class="sum-price" id="dock-total">0 ฿</div>
+        </div>
+        <button class="order-btn" onclick="showSummary()">สั่งซื้อสินค้า</button>
+    </div>
+
+    <div class="modal" id="order-modal">
+        <div class="modal-content reveal">
+            <h3 class="modal-title" style="font-size: 18px; font-weight: 600; margin-bottom: 20px; text-align: center; color: var(--gold);">สรุปรายการสั่งซื้อ</h3>
+            <div id="summary-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border-bottom: 1px solid var(--border);"></div>
+            <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 600; margin-bottom: 24px;">
+                <span>ราคารวมโดยประมาณ</span>
+                <span id="modal-total-price">0 ฿</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                <button onclick="closeSummary()" style="background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 12px; border-radius: 10px; cursor: pointer;">ยกเลิก</button>
+                <button onclick="confirmOrder()" style="background: var(--gold); border: none; color: var(--bg); padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">ส่งเข้า Line</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxxjhG6wbxg9Okvui3_wW0DlUhxGXwPSP5aCOzeM7ahevlD4cYv4HicKsI3I5ilUTLK2A/exec";
+        
+        let allItems = [];
+        let selected = new Set();
+        let currentTab = 'fish';
+        let searchQuery = '';
+        let sourceFilter = 'all';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            render();
+        }
+
+        function filterBy(source, el) {
+            sourceFilter = source;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            render();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('search').value.toLowerCase();
+            render();
+        }
+
+        function toggleItem(uniqueId) {
+            if (selected.has(uniqueId)) selected.delete(uniqueId);
+            else selected.add(uniqueId);
+            render();
+            updateDock();
+        }
+
+        function updateDock() {
+            const dock = document.getElementById('order-dock');
+            const countEl = document.getElementById('dock-count');
+            const totalEl = document.getElementById('dock-total');
+            
+            if (selected.size > 0) {
+                dock.classList.add('active');
+                let total = 0;
+                selected.forEach(id => {
+                    const item = allItems.find(i => i.uniqueId === id);
+                    if (item) {
+                        const price = parseFloat(String(item.priceKg).replace(/,/g, '')) || 0;
+                        const weight = parseFloat(item.weight) || 0;
+                        total += (price * weight);
+                    }
+                });
+                countEl.innerText = `เลือกแล้ว ${selected.size} รายการ`;
+                totalEl.innerText = `${Math.round(total).toLocaleString()} ฿`;
+            } else {
+                dock.classList.remove('active');
+            }
+        }
+
+        function showSummary() {
+            const modal = document.getElementById('order-modal');
+            const list = document.getElementById('summary-list');
+            const totalEl = document.getElementById('modal-total-price');
+            
+            let html = '';
+            let total = 0;
+            
+            selected.forEach(id => {
+                const item = allItems.find(i => i.uniqueId === id);
+                if (item) {
+                    const price = parseFloat(String(item.priceKg).replace(/,/g, '')) || 0;
+                    const weight = parseFloat(item.weight) || 0;
+                    const itemTotal = price * weight;
+                    total += itemTotal;
+                    html += `
+                        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="max-width: 70%;">${item.name} (${item.weight} ${item.unit})</div>
+                            <div style="color: var(--gold);">${Math.round(itemTotal).toLocaleString()} ฿</div>
+                        </div>`;
+                }
+            });
+            
+            list.innerHTML = html;
+            totalEl.innerText = `${Math.round(total).toLocaleString()} ฿`;
+            modal.classList.add('visible');
+        }
+
+        function closeSummary() {
+            document.getElementById('order-modal').classList.remove('visible');
+        }
+
+        function confirmOrder() {
+            let msg = "สนใจสั่งซื้อปลาครับ:\n";
+            selected.forEach(id => {
+                const item = allItems.find(i => i.uniqueId === id);
+                if (item) {
+                    msg += `- ${item.name} (${item.weight} ${item.unit}) รหัส: ${item.code}\n`;
+                }
+            });
+            window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
+            closeSummary();
+        }
+
+        function toImgUrl(url) {
+            if (!url || url.indexOf('drive.google.com') === -1) return url;
+            const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
+        }
+
+        function render() {
+            const root = document.getElementById('catalog');
+            const targetCat = currentTab === 'fish' ? 'ปลา' : 'หอย/ทะเล';
+            
+            const filtered = allItems.filter(i => {
+                const matchTab = i.category === targetCat;
+                const matchSearch = i.name.toLowerCase().includes(searchQuery) || i.source.toLowerCase().includes(searchQuery);
+                const matchSource = sourceFilter === 'all' || i.source.includes(sourceFilter);
+                return matchTab && matchSearch && matchSource;
+            });
+
+            if (filtered.length === 0 && allItems.length > 0) {
+                root.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;">ไม่พบรายการที่ต้องการ...</div>';
+                return;
+            }
+
+            root.innerHTML = filtered.map(i => {
+                const price = parseFloat(String(i.priceKg).replace(/,/g, '')) || 0;
+                const weight = parseFloat(i.weight) || 0;
+                const total = Math.round(price * weight);
+                
+                return `
+                <div class="fish-card reveal ${selected.has(i.uniqueId) ? 'selected' : ''}" onclick="toggleItem('${i.uniqueId}')">
+                    <div class="select-indicator"></div>
+                    <div class="image-box" style="background-image: url('${toImgUrl(i.image)}')"></div>
+                    <div class="card-body">
+                        <span class="source-tag">${i.source}</span>
+                        <h3 class="fish-name">${i.name}</h3>
+                        <div class="price-tag">
+                            <span class="per-kg">ราคา ${price.toLocaleString()} ฿ / ${i.unit} (นน. ${weight} ${i.unit})</span>
+                            <span class="total-price">${total.toLocaleString()} ฿</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function loadData() {
+            const cb = '_apo_cb_' + Date.now();
+            window[cb] = (data) => {
+                // Assign uniqueId to handle selection bug
+                allItems = data.map((item, index) => ({
+                    ...item,
+                    uniqueId: `item-${index}-${item.code || 'no-code'}`
+                }));
+                delete window[cb];
+                render();
+            };
+            
+            const s = document.createElement('script');
+            s.src = `${API_URL}?callback=${cb}`;
+            document.head.appendChild(s);
+            
+            // Timeout handling
+            setTimeout(() => {
+                if (allItems.length === 0) {
+                    const loader = document.getElementById('loading-indicator');
+                    if (loader) loader.innerHTML = 'การเชื่อมต่อล่าช้า กรุณาลองรีเฟรชหน้าจออีกครั้ง...';
+                }
+            }, 10000);
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

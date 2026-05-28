@@ -9,13 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #060b13;
-            --surface: #0a101a;
-            --fg: oklch(98% 0.005 250);
+            --bg: oklch(12% 0.02 240);
+            --surface: oklch(16% 0.02 240);
+            --fg: oklch(98% 0.005 240);
             --muted: oklch(60% 0.02 240);
             --gold: oklch(78% 0.10 85);
             --gold-glow: oklch(78% 0.10 85 / 0.3);
-            --border: #151f2e;
+            --border: oklch(22% 0.02 240);
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
         }
@@ -39,7 +39,7 @@
 
         .sticky-top {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(6, 11, 19, 0.85); backdrop-filter: blur(20px);
+            background: rgba(13, 22, 38, 0.85); backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border); padding: 12px 0;
         }
         
@@ -147,7 +147,7 @@
 <body>
 
     <header class="reveal">
-        <div class="logo-wrap"><img src="mppkllsa-logo-apo.png" alt="āPO" onerror="this.src='https://via.placeholder.com/150x50/060b13/ffffff?text=APO'"></div>
+        <div class="logo-wrap"><img src="mppkllsa-logo-apo.png" alt="āPO" onerror="this.src='https://via.placeholder.com/150x50/0d1626/ffffff?text=APO'"></div>
         <div class="tagline">The Michelin Standard Fishery</div>
     </header>
 
@@ -204,32 +204,32 @@
         
         let allItems = [];
         let selected = new Set();
-        let currentTab = 'fish';
-        let searchQuery = '';
-        let sourceFilter = 'all';
+        let currentCat = 'fish';
+        let query = '';
+        let currentSource = 'all';
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
+        function switchTab(cat) {
+            currentCat = cat;
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + cat).classList.add('active');
             render();
         }
 
         function filterBy(source, el) {
-            sourceFilter = source;
+            currentSource = source;
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
             el.classList.add('active');
             render();
         }
 
         function handleSearch() {
-            searchQuery = document.getElementById('search').value.toLowerCase();
+            query = document.getElementById('search').value.toLowerCase();
             render();
         }
 
-        function toggleItem(uniqueId) {
-            if (selected.has(uniqueId)) selected.delete(uniqueId);
-            else selected.add(uniqueId);
+        function toggleItem(id) {
+            if (selected.has(id)) selected.delete(id);
+            else selected.add(id);
             render();
             updateDock();
         }
@@ -251,10 +251,49 @@
                     }
                 });
                 countEl.innerText = `เลือกแล้ว ${selected.size} รายการ`;
-                totalEl.innerText = `${Math.round(total).toLocaleString()} ฿`;
+                totalEl.innerText = `${total.toLocaleString()} ฿`;
             } else {
                 dock.classList.remove('active');
             }
+        }
+
+        function render() {
+            const root = document.getElementById('catalog');
+            const targetCat = currentCat === 'fish' ? 'ปลา' : 'หอย/ทะเล';
+            
+            const filtered = allItems.filter(i => {
+                const matchCat = i.category === targetCat;
+                const matchSearch = i.name.toLowerCase().includes(query) || i.source.toLowerCase().includes(query);
+                const matchSource = currentSource === 'all' || i.source.includes(currentSource);
+                return matchCat && matchSearch && matchSource;
+            });
+
+            if (filtered.length === 0 && allItems.length > 0) {
+                root.innerHTML = `<div class="loading-state" style="grid-column: 1/-1;">ไม่พบรายการที่ตรงตามเงื่อนไข</div>`;
+                return;
+            }
+
+            root.innerHTML = filtered.map(i => `
+                <div class="fish-card ${selected.has(i.uniqueId) ? 'selected' : ''}" onclick="toggleItem('${i.uniqueId}')">
+                    <div class="select-indicator"></div>
+                    <div class="image-box" style="background-image: url('${toImgUrl(i.image)}')"></div>
+                    <div class="card-body">
+                        <span class="source-tag">${i.source}</span>
+                        <h3 class="fish-name">${i.name}</h3>
+                        
+                        <div class="price-tag">
+                            <span class="per-kg">ราคา ${(parseFloat(String(i.priceKg).replace(/,/g, '')) || 0).toLocaleString()} ฿ / ${i.unit || 'กก.'} (น้ำหนัก ${i.weight} ${i.unit || 'กก.'})</span>
+                            <span class="total-price">${((parseFloat(String(i.priceKg).replace(/,/g, '')) || 0) * (parseFloat(i.weight) || 0)).toLocaleString()} ฿</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toImgUrl(url) {
+            if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=āPO';
+            var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
         }
 
         function showSummary() {
@@ -270,18 +309,22 @@
                 if (item) {
                     const price = parseFloat(String(item.priceKg).replace(/,/g, '')) || 0;
                     const weight = parseFloat(item.weight) || 0;
-                    const itemTotal = price * weight;
-                    total += itemTotal;
+                    const sum = price * weight;
+                    total += sum;
                     html += `
-                        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <div style="max-width: 70%;">${item.name} (${item.weight} ${item.unit})</div>
-                            <div style="color: var(--gold);">${Math.round(itemTotal).toLocaleString()} ฿</div>
-                        </div>`;
+                        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="flex: 1; padding-right: 10px;">
+                                <div style="font-weight: 500;">${item.name}</div>
+                                <div style="font-size: 11px; color: var(--muted);">${item.weight} ${item.unit || 'กก.'} (${price.toLocaleString()} ฿/กก.)</div>
+                            </div>
+                            <div style="font-weight: 600; color: var(--gold);">${sum.toLocaleString()} ฿</div>
+                        </div>
+                    `;
                 }
             });
             
             list.innerHTML = html;
-            totalEl.innerText = `${Math.round(total).toLocaleString()} ฿`;
+            totalEl.innerText = `${total.toLocaleString()} ฿`;
             modal.classList.add('visible');
         }
 
@@ -290,81 +333,41 @@
         }
 
         function confirmOrder() {
-            let msg = "สนใจสั่งซื้อปลาครับ:\n";
+            let msg = 'เชฟครับ ผมสนใจสั่งซื้อวัตถุดิบดังนี้ครับ:\n\n';
+            let total = 0;
             selected.forEach(id => {
                 const item = allItems.find(i => i.uniqueId === id);
                 if (item) {
-                    msg += `- ${item.name} (${item.weight} ${item.unit}) รหัส: ${item.code}\n`;
+                    const price = parseFloat(String(item.priceKg).replace(/,/g, '')) || 0;
+                    const weight = parseFloat(item.weight) || 0;
+                    const sum = price * weight;
+                    total += sum;
+                    msg += `- ${item.name} (${item.weight} ${item.unit || 'กก.'}) : ${sum.toLocaleString()} ฿\n`;
                 }
             });
+            msg += `\nยอดรวมโดยประมาณ: ${total.toLocaleString()} ฿\nรบกวนเชฟยืนยันยอดและแจ้งการโอนเงินด้วยครับ`;
             window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
-            closeSummary();
-        }
-
-        function toImgUrl(url) {
-            if (!url || url.indexOf('drive.google.com') === -1) return url;
-            const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
-        }
-
-        function render() {
-            const root = document.getElementById('catalog');
-            const targetCat = currentTab === 'fish' ? 'ปลา' : 'หอย/ทะเล';
-            
-            const filtered = allItems.filter(i => {
-                const matchTab = i.category === targetCat;
-                const matchSearch = i.name.toLowerCase().includes(searchQuery) || i.source.toLowerCase().includes(searchQuery);
-                const matchSource = sourceFilter === 'all' || i.source.includes(sourceFilter);
-                return matchTab && matchSearch && matchSource;
-            });
-
-            if (filtered.length === 0 && allItems.length > 0) {
-                root.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;">ไม่พบรายการที่ต้องการ...</div>';
-                return;
-            }
-
-            root.innerHTML = filtered.map(i => {
-                const price = parseFloat(String(i.priceKg).replace(/,/g, '')) || 0;
-                const weight = parseFloat(i.weight) || 0;
-                const total = Math.round(price * weight);
-                
-                return `
-                <div class="fish-card reveal ${selected.has(i.uniqueId) ? 'selected' : ''}" onclick="toggleItem('${i.uniqueId}')">
-                    <div class="select-indicator"></div>
-                    <div class="image-box" style="background-image: url('${toImgUrl(i.image)}')"></div>
-                    <div class="card-body">
-                        <span class="source-tag">${i.source}</span>
-                        <h3 class="fish-name">${i.name}</h3>
-                        <div class="price-tag">
-                            <span class="per-kg">ราคา ${price.toLocaleString()} ฿ / ${i.unit} (นน. ${weight} ${i.unit})</span>
-                            <span class="total-price">${total.toLocaleString()} ฿</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
         }
 
         function loadData() {
             const cb = '_apo_cb_' + Date.now();
-            window[cb] = (data) => {
-                // Assign uniqueId to handle selection bug
+            window[cb] = (data) => { 
+                // Fix selection bug: assign a truly unique ID to each item
                 allItems = data.map((item, index) => ({
                     ...item,
-                    uniqueId: `item-${index}-${item.code || 'no-code'}`
+                    uniqueId: (item.code || 'ITEM') + '-' + index
                 }));
-                delete window[cb];
-                render();
+                delete window[cb]; 
+                render(); 
             };
-            
             const s = document.createElement('script');
             s.src = `${API_URL}?callback=${cb}`;
             document.head.appendChild(s);
             
-            // Timeout handling
+            // Timeout if loading fails
             setTimeout(() => {
                 if (allItems.length === 0) {
-                    const loader = document.getElementById('loading-indicator');
-                    if (loader) loader.innerHTML = 'การเชื่อมต่อล่าช้า กรุณาลองรีเฟรชหน้าจออีกครั้ง...';
+                    document.getElementById('loading-indicator').innerHTML = `เกิดข้อผิดพลาดในการโหลดข้อมูล <br> <button onclick="location.reload()" style="margin-top:10px; background:var(--gold); border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">ลองใหม่อีกครั้ง</button>`;
                 }
             }, 10000);
         }

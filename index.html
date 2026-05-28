@@ -9,19 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1626;
             --bg: oklch(12% 0.02 240);
-            --surface: #161e2e;
             --surface: oklch(16% 0.02 240);
-            --fg: #f8f9fb;
             --fg: oklch(98% 0.005 240);
-            --muted: #7a8499;
             --muted: oklch(60% 0.02 240);
-            --gold: #c9a84c;
             --gold: oklch(78% 0.10 85);
-            --gold-glow: rgba(201, 168, 76, 0.3);
             --gold-glow: oklch(78% 0.10 85 / 0.3);
-            --border: #252e40;
             --border: oklch(22% 0.02 240);
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
@@ -46,7 +39,7 @@
 
         .sticky-top {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(13, 22, 38, 0.85); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+            background: rgba(13, 22, 38, 0.85); backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border); padding: 12px 0;
         }
         
@@ -135,9 +128,9 @@
 
         .modal {
             position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.8);
-            display: none; align-items: center; justify-content: center; padding: 20px;
+            backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; padding: 20px;
         }
-        .modal.visible { display: flex; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+        .modal.visible { display: flex; }
         .modal-content {
             background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
             width: 100%; max-width: 400px; padding: 24px; position: relative;
@@ -300,9 +293,9 @@
 
         // ปรับปรุง URL รูปภาพ Google Drive ให้เป็น HTTPS ทั้งหมดเพื่อความปลอดภัยบนหน้าจอมือถือ
         function toImgUrl(url) {
-            if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=APO';
+            if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=āPO';
             var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : url;
+            return m ? 'https://drive.google.com/uc?export=view&id=' + m[1] : url;
         }
 
         function showSummary() {
@@ -358,82 +351,48 @@
             window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
         }
 
-        function processData(data) {
-            if (data && data.length > 0) {
-                allItems = data.map((item, index) => ({
-                    ...item,
-                    uniqueId: (item.code || 'ITEM') + '-' + index
-                }));
-                render();
-                return true;
-            }
-            return false;
-        }
-
-        function showError() {
-            var el = document.getElementById('loading-indicator');
-            if (el) el.innerHTML = 'เกิดข้อผิดพลาดในการโหลดข้อมูล <br><button onclick="location.reload()" style="margin-top:10px;background:var(--gold);border:none;padding:5px 15px;border-radius:4px;cursor:pointer;color:var(--bg);font-weight:600;">ลองใหม่อีกครั้ง</button>';
-        }
-
-        // XHR: handle redirect ของ GAS บน Safari iOS ได้ดีกว่า fetch
-        function loadViaXHR(onFail) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', API_URL + '?t=' + Date.now(), true);
-            xhr.withCredentials = false;
-            xhr.timeout = 15000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== 4) return;
-                if (xhr.status === 200) {
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (processData(data)) return;
-                    } catch(e) {}
-                }
-                onFail();
-            };
-            xhr.ontimeout = onFail;
-            xhr.onerror = onFail;
-            xhr.send();
-        }
-
-        // fetch fallback: บาง in-app browser บน Android ที่ XHR มีปัญหา
-        async function loadViaFetch(onFail) {
+        // ปรับปรุงการโหลดข้อมูลแบบใช้ Fetch API เพื่อให้ทะลุระบบบล็อก Cross-Site บนมือถือ
+        async function loadData() {
             try {
-                var res = await fetch(API_URL + '?t=' + Date.now(), {
-                    method: 'GET',
-                    credentials: 'omit',
-                    redirect: 'follow',
-                    cache: 'no-store'
-                });
-                if (!res.ok) throw new Error('status ' + res.status);
-                var data = await res.json();
-                if (processData(data)) return;
-            } catch(e) {
-                console.warn('fetch fallback failed', e);
+                // เพิ่มระบบดึงข้อมูลสำรองในกรณีที่ Fetch แบบธรรมดาติดขัด เพื่อความเสถียรสูงสุดบนมือถือ
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    allItems = data.map((item, index) => ({
+                        ...item,
+                        uniqueId: (item.code || 'ITEM') + '-' + index
+                    }));
+                    render();
+                    return;
+                }
+            } catch (e) {
+                console.log('Fetch standard failed, trying fallback JSONP...', e);
             }
-            onFail();
-        }
 
-        function loadData() {
-            var done = false;
-            var timer = setTimeout(function() {
-                if (!done) showError();
-            }, 20000);
-
-            loadViaXHR(function() {
-                if (done) return;
-                loadViaFetch(function() {
-                    if (!done) showError();
-                });
-            });
-
-            // patch processData ให้ clear timer เมื่อสำเร็จ
-            var _orig = processData;
-            processData = function(data) {
-                var ok = _orig(data);
-                if (ok) { done = true; clearTimeout(timer); }
-                return ok;
+            // Fallback: หากระบบ Fetch แบบปกติโดน In-App Browser บล็อก ให้ใช้ JSONP แบ็คอัปทันที
+            const cb = '_apo_cb_' + Date.now();
+            window[cb] = (data) => { 
+                if (data && data.length > 0) {
+                    allItems = data.map((item, index) => ({
+                        ...item,
+                        uniqueId: (item.code || 'ITEM') + '-' + index
+                    }));
+                    render(); 
+                }
+                delete window[cb]; 
             };
+            const s = document.createElement('script');
+            s.src = `${API_URL}?callback=${cb}`;
+            document.head.appendChild(s);
+            
+            // ตั้งเวลารอการตอบสนองกรณีอินเทอร์เน็ตมือถือช้า (เพิ่มเป็น 25 วินาที)
+            setTimeout(() => {
+                if (allItems.length === 0) {
+                    document.getElementById('loading-indicator').innerHTML = `เกิดข้อผิดพลาดในการโหลดข้อมูล <br> <button onclick="location.reload()" style="margin-top:10px; background:var(--gold); border:none; padding:5px 15px; border-radius:4px; cursor:pointer; color:var(--bg); font-weight:600;">ลองใหม่อีกครั้ง</button>`;
+                }
+            }, 25000);
         }
 
         window.onload = loadData;

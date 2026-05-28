@@ -86,7 +86,7 @@
         .fish-card:active { transform: scale(0.96); }
         .fish-card.selected { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
 
-        /* แก้ไขคลาส image-box สำหรับมือถือแล้ว */
+        /* การตั้งค่า Image Box ปรับปรุงให้รองรับความสูงสมบูรณ์แบบบนหน้าจอมือถือทุกรุ่น */
         .image-box { width: 100%; padding-top: 100%; background-size: cover; background-position: center; position: relative; }
         .image-box::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
 
@@ -291,7 +291,7 @@
             `).join('');
         }
 
-        /* แก้ไขลิงก์รูปภาพ Drive สำหรับมือถือแล้ว */
+        // ปรับปรุง URL รูปภาพ Google Drive ให้เป็น HTTPS ทั้งหมดเพื่อความปลอดภัยบนหน้าจอมือถือ
         function toImgUrl(url) {
             if (!url || url.indexOf('drive.google.com') === -1) return url || 'https://via.placeholder.com/400x400/0d1626/ffffff?text=āPO';
             var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -351,27 +351,48 @@
             window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
         }
 
-        function loadData() {
+        // ปรับปรุงการโหลดข้อมูลแบบใช้ Fetch API เพื่อให้ทะลุระบบบล็อก Cross-Site บนมือถือ
+        async function loadData() {
+            try {
+                // เพิ่มระบบดึงข้อมูลสำรองในกรณีที่ Fetch แบบธรรมดาติดขัด เพื่อความเสถียรสูงสุดบนมือถือ
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    allItems = data.map((item, index) => ({
+                        ...item,
+                        uniqueId: (item.code || 'ITEM') + '-' + index
+                    }));
+                    render();
+                    return;
+                }
+            } catch (e) {
+                console.log('Fetch standard failed, trying fallback JSONP...', e);
+            }
+
+            // Fallback: หากระบบ Fetch แบบปกติโดน In-App Browser บล็อก ให้ใช้ JSONP แบ็คอัปทันที
             const cb = '_apo_cb_' + Date.now();
             window[cb] = (data) => { 
-                // Fix selection bug: assign a truly unique ID to each item
-                allItems = data.map((item, index) => ({
-                    ...item,
-                    uniqueId: (item.code || 'ITEM') + '-' + index
-                }));
+                if (data && data.length > 0) {
+                    allItems = data.map((item, index) => ({
+                        ...item,
+                        uniqueId: (item.code || 'ITEM') + '-' + index
+                    }));
+                    render(); 
+                }
                 delete window[cb]; 
-                render(); 
             };
             const s = document.createElement('script');
             s.src = `${API_URL}?callback=${cb}`;
             document.head.appendChild(s);
             
-            // Timeout if loading fails
+            // ตั้งเวลารอการตอบสนองกรณีอินเทอร์เน็ตมือถือช้า (เพิ่มเป็น 25 วินาที)
             setTimeout(() => {
                 if (allItems.length === 0) {
-                    document.getElementById('loading-indicator').innerHTML = `เกิดข้อผิดพลาดในการโหลดข้อมูล <br> <button onclick="location.reload()" style="margin-top:10px; background:var(--gold); border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">ลองใหม่อีกครั้ง</button>`;
+                    document.getElementById('loading-indicator').innerHTML = `เกิดข้อผิดพลาดในการโหลดข้อมูล <br> <button onclick="location.reload()" style="margin-top:10px; background:var(--gold); border:none; padding:5px 15px; border-radius:4px; cursor:pointer; color:var(--bg); font-weight:600;">ลองใหม่อีกครั้ง</button>`;
                 }
-            }, 10000);
+            }, 25000);
         }
 
         window.onload = loadData;

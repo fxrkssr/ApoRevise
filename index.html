@@ -212,7 +212,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxxjhG6wbxg9Okvui3_wW0DlUhxGXwPSP5aCOzeM7ahevlD4cYv4HicKsI3I5ilUTLK2A/exec";
+        const API_URL = "https://apo-api.fxrkssr.workers.dev";
         
         let allItems = [];
         let selected = new Set();
@@ -377,42 +377,19 @@
             return true;
         }
 
-        function tryFetch() {
-            fetch(API_URL + '?t=' + Date.now(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' })
-                .then(function(r) { return r.json(); })
-                .then(function(data) { processData(data); })
-                .catch(function() {});
-        }
-
         function loadData() {
-            var done = false;
-            var errorTimer = setTimeout(function() {
-                if (!done) showError();
-            }, 28000);
+            var errorTimer = setTimeout(showError, 10000);
 
-            function succeed() { done = true; clearTimeout(errorTimer); }
-
-            // JSONP ไม่โดน CORS — callback ต้องอยู่จนกว่า GAS จะตอบ (cold start อาจนาน 15-18s)
-            var cbName = '_apo_' + Date.now();
-
-            window[cbName] = function(data) {
-                delete window[cbName];
-                if (!done && processData(data)) succeed();
-            };
-
-            var s = document.createElement('script');
-            // ถ้า script โหลดไม่ได้เลย (network block) ให้ลอง fetch ทันที
-            s.onerror = function() {
-                delete window[cbName];
-                if (!done) tryFetch();
-            };
-            s.src = API_URL + '?callback=' + cbName + '&t=' + Date.now();
-            document.head.appendChild(s);
-
-            // ถ้า 18s ผ่านไปแล้ว JSONP ยังไม่ตอบ → ลอง fetch คู่ขนาน (GAS cold start)
-            setTimeout(function() {
-                if (!done) tryFetch();
-            }, 18000);
+            fetch(API_URL)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    clearTimeout(errorTimer);
+                    processData(data);
+                })
+                .catch(function() {
+                    clearTimeout(errorTimer);
+                    showError();
+                });
         }
 
         window.onload = loadData;

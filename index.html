@@ -9,15 +9,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: oklch(12% 0.02 240);
-            --surface: oklch(16% 0.02 240);
-            --fg: oklch(98% 0.005 240);
-            --muted: oklch(60% 0.02 240);
-            --gold: oklch(78% 0.10 85);
-            --gold-glow: oklch(78% 0.10 85 / 0.3);
-            --border: oklch(22% 0.02 240);
+            --bg: #0d1626;
+            --surface: #161e2e;
+            --fg: #f8f9fb;
+            --muted: #7a8499;
+            --gold: #c9a84c;
+            --gold-glow: rgba(201, 168, 76, 0.3);
+            --border: #252e40;
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
+        }
+        @supports (color: oklch(0% 0 0)) {
+            :root {
+                --bg: oklch(12% 0.02 240);
+                --surface: oklch(16% 0.02 240);
+                --fg: oklch(98% 0.005 240);
+                --muted: oklch(60% 0.02 240);
+                --gold: oklch(78% 0.10 85);
+                --gold-glow: oklch(78% 0.10 85 / 0.3);
+                --border: oklch(22% 0.02 240);
+            }
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -259,6 +270,7 @@
         }
 
         function render() {
+            if (allItems.length === 0) return;
             const root = document.getElementById('catalog');
             const targetCat = currentCat === 'fish' ? 'ปลา' : 'หอย/ทะเล';
             

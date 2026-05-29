@@ -9,25 +9,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1626;
-            --surface: #161e2e;
-            --fg: #f8f9fb;
-            --muted: #7a8499;
+            --bg: #030e1b;
+            --surface: #071f35;
+            --fg: #d8eeff;
+            --muted: #4d85b0;
             --gold: #c9a84c;
             --gold-glow: rgba(201, 168, 76, 0.3);
-            --border: #252e40;
+            --border: #0e2e4a;
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
         }
         @supports (color: oklch(0% 0 0)) {
             :root {
-                --bg: oklch(12% 0.02 240);
-                --surface: oklch(16% 0.02 240);
-                --fg: oklch(98% 0.005 240);
-                --muted: oklch(60% 0.02 240);
+                --bg: oklch(7% 0.025 235);
+                --surface: oklch(13% 0.04 235);
+                --fg: oklch(94% 0.03 220);
+                --muted: oklch(58% 0.075 230);
                 --gold: oklch(78% 0.10 85);
                 --gold-glow: oklch(78% 0.10 85 / 0.3);
-                --border: oklch(22% 0.02 240);
+                --border: oklch(20% 0.045 235);
             }
         }
 
@@ -50,7 +50,7 @@
 
         .sticky-top {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(13, 22, 38, 0.85); backdrop-filter: blur(20px);
+            background: rgba(3, 14, 27, 0.88); backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border); padding: 12px 0;
         }
         
@@ -363,48 +363,53 @@
             window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
         }
 
-        // ปรับปรุงการโหลดข้อมูลแบบใช้ Fetch API เพื่อให้ทะลุระบบบล็อก Cross-Site บนมือถือ
-        async function loadData() {
-            try {
-                // เพิ่มระบบดึงข้อมูลสำรองในกรณีที่ Fetch แบบธรรมดาติดขัด เพื่อความเสถียรสูงสุดบนมือถือ
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    allItems = data.map((item, index) => ({
-                        ...item,
-                        uniqueId: (item.code || 'ITEM') + '-' + index
-                    }));
-                    render();
-                    return;
-                }
-            } catch (e) {
-                console.log('Fetch standard failed, trying fallback JSONP...', e);
-            }
+        function showError() {
+            var el = document.getElementById('loading-indicator');
+            if (el) el.innerHTML = 'เกิดข้อผิดพลาดในการโหลดข้อมูล <br><button onclick="location.reload()" style="margin-top:10px;background:var(--gold);border:none;padding:5px 15px;border-radius:4px;cursor:pointer;color:var(--bg);font-weight:600;">ลองใหม่อีกครั้ง</button>';
+        }
 
-            // Fallback: หากระบบ Fetch แบบปกติโดน In-App Browser บล็อก ให้ใช้ JSONP แบ็คอัปทันที
-            const cb = '_apo_cb_' + Date.now();
-            window[cb] = (data) => { 
-                if (data && data.length > 0) {
-                    allItems = data.map((item, index) => ({
-                        ...item,
-                        uniqueId: (item.code || 'ITEM') + '-' + index
-                    }));
-                    render(); 
-                }
-                delete window[cb]; 
+        function processData(data) {
+            if (!data || data.length === 0) return false;
+            allItems = data.map(function(item, index) {
+                return Object.assign({}, item, { uniqueId: (item.code || 'ITEM') + '-' + index });
+            });
+            render();
+            return true;
+        }
+
+        function loadData() {
+            var done = false;
+            var errorTimer = setTimeout(function() {
+                if (!done) showError();
+            }, 20000);
+
+            function succeed() { done = true; clearTimeout(errorTimer); }
+
+            // JSONP ไม่โดน CORS เลย — ใช้ก่อนเสมอ
+            var cbName = '_apo_' + Date.now();
+            var jsonpTimer = setTimeout(function() {
+                if (done) return;
+                delete window[cbName];
+                // ถ้า JSONP timeout ให้ลอง fetch เป็น fallback
+                fetch(API_URL + '?t=' + Date.now(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) { if (!done && processData(data)) succeed(); })
+                    .catch(function() {});
+            }, 12000);
+
+            window[cbName] = function(data) {
+                clearTimeout(jsonpTimer);
+                delete window[cbName];
+                if (!done && processData(data)) succeed();
             };
-            const s = document.createElement('script');
-            s.src = `${API_URL}?callback=${cb}`;
+
+            var s = document.createElement('script');
+            s.onerror = function() {
+                clearTimeout(jsonpTimer);
+                delete window[cbName];
+            };
+            s.src = API_URL + '?callback=' + cbName + '&t=' + Date.now();
             document.head.appendChild(s);
-            
-            // ตั้งเวลารอการตอบสนองกรณีอินเทอร์เน็ตมือถือช้า (เพิ่มเป็น 25 วินาที)
-            setTimeout(() => {
-                if (allItems.length === 0) {
-                    document.getElementById('loading-indicator').innerHTML = `เกิดข้อผิดพลาดในการโหลดข้อมูล <br> <button onclick="location.reload()" style="margin-top:10px; background:var(--gold); border:none; padding:5px 15px; border-radius:4px; cursor:pointer; color:var(--bg); font-weight:600;">ลองใหม่อีกครั้ง</button>`;
-                }
-            }, 25000);
         }
 
         window.onload = loadData;

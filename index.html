@@ -9,25 +9,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0a1f3d;
-            --surface: #122d50;
+            --bg: #142d52;
+            --surface: #1c3b65;
             --fg: #d8eeff;
             --muted: #5a96c8;
             --gold: #c9a84c;
             --gold-glow: rgba(201, 168, 76, 0.3);
-            --border: #1a3d5c;
+            --border: #244b6e;
             --font-th: 'Prompt', sans-serif;
             --font-serif: 'Cormorant Garamond', serif;
         }
         @supports (color: oklch(0% 0 0)) {
             :root {
-                --bg: oklch(16% 0.06 240);
-                --surface: oklch(21% 0.07 240);
+                --bg: oklch(22% 0.07 240);
+                --surface: oklch(28% 0.08 240);
                 --fg: oklch(94% 0.03 220);
                 --muted: oklch(63% 0.09 230);
                 --gold: oklch(78% 0.10 85);
                 --gold-glow: oklch(78% 0.10 85 / 0.3);
-                --border: oklch(28% 0.07 235);
+                --border: oklch(35% 0.08 235);
             }
         }
 
@@ -50,7 +50,7 @@
 
         .sticky-top {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(10, 31, 61, 0.90); backdrop-filter: blur(20px);
+            background: rgba(20, 45, 82, 0.92); backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border); padding: 12px 0;
         }
         
@@ -377,39 +377,42 @@
             return true;
         }
 
+        function tryFetch() {
+            fetch(API_URL + '?t=' + Date.now(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) { processData(data); })
+                .catch(function() {});
+        }
+
         function loadData() {
             var done = false;
             var errorTimer = setTimeout(function() {
                 if (!done) showError();
-            }, 20000);
+            }, 28000);
 
             function succeed() { done = true; clearTimeout(errorTimer); }
 
-            // JSONP ไม่โดน CORS เลย — ใช้ก่อนเสมอ
+            // JSONP ไม่โดน CORS — callback ต้องอยู่จนกว่า GAS จะตอบ (cold start อาจนาน 15-18s)
             var cbName = '_apo_' + Date.now();
-            var jsonpTimer = setTimeout(function() {
-                if (done) return;
-                delete window[cbName];
-                // ถ้า JSONP timeout ให้ลอง fetch เป็น fallback
-                fetch(API_URL + '?t=' + Date.now(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) { if (!done && processData(data)) succeed(); })
-                    .catch(function() {});
-            }, 12000);
 
             window[cbName] = function(data) {
-                clearTimeout(jsonpTimer);
                 delete window[cbName];
                 if (!done && processData(data)) succeed();
             };
 
             var s = document.createElement('script');
+            // ถ้า script โหลดไม่ได้เลย (network block) ให้ลอง fetch ทันที
             s.onerror = function() {
-                clearTimeout(jsonpTimer);
                 delete window[cbName];
+                if (!done) tryFetch();
             };
             s.src = API_URL + '?callback=' + cbName + '&t=' + Date.now();
             document.head.appendChild(s);
+
+            // ถ้า 18s ผ่านไปแล้ว JSONP ยังไม่ตอบ → ลอง fetch คู่ขนาน (GAS cold start)
+            setTimeout(function() {
+                if (!done) tryFetch();
+            }, 18000);
         }
 
         window.onload = loadData;

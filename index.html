@@ -347,7 +347,7 @@
         }
 
         function confirmOrder() {
-            let msg = 'เชฟครับ ผมสนใจสั่งซื้อวัตถุดิบดังนี้ครับ:\n\n';
+            let lines = [];
             let total = 0;
             selected.forEach(id => {
                 const item = allItems.find(i => i.uniqueId === id);
@@ -356,10 +356,10 @@
                     const weight = parseFloat(item.weight) || 0;
                     const sum = price * weight;
                     total += sum;
-                    msg += `- ${item.name} (${item.weight} ${item.unit || 'กก.'}) : ${sum.toLocaleString()} ฿\n`;
+                    lines.push(`- ${item.name} (${item.weight} ${item.unit || 'กก.'}) : ${sum.toLocaleString()} ฿`);
                 }
             });
-            msg += `\nยอดรวมโดยประมาณ: ${total.toLocaleString()} ฿\nรบกวนเชฟยืนยันยอดและแจ้งการโอนเงินด้วยครับ`;
+            const msg = `สนใจสั่งซื้อ\n${lines.join('\n')}\nยอดรวม ${total.toLocaleString()} ฿`;
             window.open(`https://line.me/R/oaMessage/@885iivsu/?${encodeURIComponent(msg)}`);
         }
 
